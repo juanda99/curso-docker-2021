@@ -1,0 +1,24 @@
+{
+  "name": "curso-docker-2021",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "reveal-md --theme white --css style.css ./index.md",
+    "web": "reveal-md index.md --static --static-dirs=img",
+    "print": "reveal-md --theme white index.md --print index.pdf"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juanda99/curso-docker-2021.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/juanda99/curso-docker-2021/issues"
+  },
+  "homepage": "https://github.com/juanda99/curso-docker-2021#readme",
+  "dependencies": {
+    "reveal-md": "^5.1.2"
+  }
+}
