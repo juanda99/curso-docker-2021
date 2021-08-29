@@ -64,6 +64,20 @@
 - Son efímeros
 
 
+## Como se consigue
+
+- Usando características del kernel de Linux:
+  -  Kernel namespaces
+  - Apparmor
+  - Perfiles SELinux	
+  - Políticas Seccomp
+  - Chroot y CGroups
+
+
+
+# Docker
+
+
 ## Qué es Docker
 
 Herramienta **open-source** que nos permite realizar una **virtualización ligera**, con la que poder **empaquetar entornos y aplicaciones** que posteriormente podremos **desplegar** en cualquier sistema que disponga de esta tecnología
@@ -71,18 +85,18 @@ Herramienta **open-source** que nos permite realizar una **virtualización liger
 
 ## Arquitectura Docker
 
-- Es una arquitectura cliente-servidor
-  - El servidor es el daemon (container engine) al que se acccede mediante una API REST
+- Es una arquitectura **cliente-servidor+*
+  - El servidor es el daemon (container engine) al que se acccede mediante una **API REST**
   - Existen SDKs y clientes de la API para distintos lenguajes
   - El cliente habitual es el comando **docker**
 - ![](images/docker-architecture.svg)
 
 
--  Por defecto usa UNIX sockets:
+-  Por defecto usa **UNIX sockets**:
    - Comunicacción entre procesos de la misma  máquina
    - Se maneja  por el kernel
 
-- Podemos configurarlo para que use TCP
+- Podemos configurarlo para que use **TCP**
   - Cliente y dockerd en máquinas distintas
   - Se cambia la variable de entorno ```DOCKER_HOST=tcp://X.X.X.X:2375```
   - Es recomendable  habilitar -tls (por defecto puerto 2376 para TLS) y poner un WebProxy delante para controlar el acceso.
@@ -122,7 +136,22 @@ EXPOSE 80
 
 
 ## Servicios
-- Los servicios permiten escalar contenedor a través de múltiples demonios de Docker, los cuales trabajarán conjuntamente como un enjambre (swarm).
+- Los servicios permiten escalar contenedores a través de múltiples demonios de Docker, los cuales trabajarán conjuntamente como un enjambre (swarm).
+
+
+## Desarrollo  en Docker
+
+- Un contenedor -> Un proceso
+  - Mejor escalabilidad
+  - Mejor reutilización
+  - Actualizaciones
+
+
+## Desarrollos actuales
+  - [La carga en la comunicación de un equipo de tamaño n es  n(n-1)/2](https://en.wikipedia.org/wiki/The_Mythical_Man-Month)
+  - Un  equipo de desarrollo se debe dividir en equipos  pequeños autónomos (6-10 personas  )
+    - Amazon es famoso por los equipos de trabajo que comparten 2 pizzas. 
+![](images/successtriangle.png)
 
 
 ##  Docker en Linux (I)
@@ -207,14 +236,13 @@ EXPOSE 80
 - Nos centraremos en la versión libre, que es la única a la que hace referencia ahora la [web de Docker](https://www.docker.com/)  
 
 
-## Instalación
+## Tipos de instalación
 
 - Ir a la [web de Docker](https://docs.docker.com/get-docker/)
-- Se puede instalar el Docker Desktop en Windows
-- Se puede instalar el Docker Engine en Linux
+  - Se puede instalar el Docker Desktop en Windows
+  - Se puede instalar el Docker Engine en Linux
 - Se puede desplegar una imagen mediante Vagrant que tenga todo
 - Se puede usar una OVA.
-- Es importante instalar también **Docker Compose** 
 
 
 ## Instalación en Linux
@@ -328,6 +356,11 @@ docker start <container-id>
 ```
 
 
+## Ejercicio
+
+- Prueba a hacer un deploy de un contenedor Apache utilizando la extensión Docker de Visual Code
+
+
 ## Ejecución imagen con versión
 
 - Por defecto descargamos imágen con versión *latest*
@@ -348,12 +381,10 @@ docker start <container-id>
   -  Instalamos usando el PPA oficial
 
 ```
-sudo apt-get install npm
-
 sudo curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh
 sudo bash nodesource_setup.sh
 sudo apt-get install -y nodejs
-npm --version
+node --version
 sudo npm i -g redis-commander
 redis-commander
 ```
@@ -374,6 +405,8 @@ redis-commander
     docker run  -d redis
     docker run -d redis:4.0   
   ```
+- ¿A dónde conectaría ahora redis-commander?
+
 
 ## Configuración  de redes
 
@@ -420,7 +453,7 @@ redis-commander
 
 ##  Drivers - overlay
 
-- Para conectar múltiplos demonios docker y permitir la comunición entre servicios swarm.
+- Para conectar múltiples demonios docker y permitir la comunición entre servicios swarm.
 
 
 ##  Drivers - macvlan
@@ -501,24 +534,37 @@ docker run -p5001:6379 --name  redis-old -d redis:4.0
 ```
 
 
+## Ejercicio
+
+- Comprueba el estado  de imágenes y contenedores de tu equipo
+- Elimina todas las imágenes
+- Elimina todos los contenedores (también los parados)
 
 
-## Versiones imágenes
+## Solución
 
-- No es bueno utililzar imágenes con etiqueta latest
-  - Se pueden producir breaking changes
-  - No está claro el versionado de la imágen. ¿docker inspect?
+- Estado actual:
+  ```
+  docker ps
+  docker ps -a
+  docker  images
+  ```
+
+- Borrar imágenes:
+  ``` 
+  docker rmi $(docker images -a -q)
+  ```
+
+- Borrar  contenedores:
+  ```
+  docker rm $(docker ps -a -q)
+  ```
 
 
 ## Ejercicio
 
-- Borra todas las imágenes previas en tu equipo
-  ``` 
-  docker images
-  docker rmi $(docker images -a -q)
-  ```
-- Descarga redis:latest y comprueba su versión
-- Descarga esa versión específica
+- Descarga **redis:latest** y comprueba su versión
+- Descarga esa versión específica (redis:x.y.z)
 - Comprueba que tienes dos imágenes al hacer un listado pero que:
   - Ambas ocupan el mismo tamaño
   - Son idénticas:
@@ -526,40 +572,307 @@ docker run -p5001:6379 --name  redis-old -d redis:4.0
     - No se ha producido ninguna descarga de layers adicionales.
 
 
+## Solución
+
+- Ejecutar  contenedor latest y  ver versión
+  ```
+  docker run --name redis-new -d redis
+  docker inspect redis-new|grep -i version
+  docker exec -it redis-new env
+  ```
+
+- Descargar versión actual y comprobar que ambas son idénticas
+  ```
+  docker pull redis:6.2.5 # en mi caso
+  docker images
+  ```
+
+
+## Versiones imágenes
+
+- No es aconsejable utilizar imágenes con etiqueta latest
+  - Se pueden producir breaking changes
+  - No está claro el versionado de la imágen.
+
 
 
 # Docker Hub
 
+
+## Registros de imágenes
+
 - Podemos crear una imagen de cero pero lo normal es usar o partir de una ya creada.
-- Hay un registro oficial de imágenes llamado  [Docker Hub](https://hub.docker.com)
-- También podemos crearnos nuestro propio registro.
-- Los registros pueden ser públicos o privados.
+- Hay un registro oficial de imágenes proporcionado por Docker:  [Docker Hub](https://hub.docker.com)
+- También podemos crear nuestro propio servicio.
 
 
-## Registro  de docker
+## ¿Qué es Docker hub?
 
-- Lugar donde se almacenan las imágenes.
-  - Si vamos a desarrollar por ej con php buscaremos una imagen pública de php con una determinada versión
-- **Docker Hub** es un registro público, gratuito para imágenes públicas, y con versiones de pago del servicio para registros privados. - En el registro público, cualquiera puede hacer push de sus imágenes, o pull de las imágenes creadas por otros usuarios.
-Cuando se ejecuta docker pull o docker run, las imágenes requeridas se descargan del registro. Cuando es hace docker push, la imagen se sube al registro.
-- Docker viene configurado por defecto para buscar las imágenes de Docker Hub (docker.io/)
+- Un **repositorio de imágenes**: descarga y publicación.
+  - Repositorio de **imágenes oficiales  de Docker**, de alta calidad.
+  - Repositorio de **imágenes verificadas publicadas por terceros**.
+
+
+## ¿Que más  ofrece?
+
+- **Gestor  de  equipos y organizaciones**: acceso a repositorios privados.
+- **Autobuilds**: compila imágenes de Github  o Bitbucket y hace un push a DockerHub
+- **Webhooks**: Ejecuta acciones después para integrar DockerHub con otros servicios
+
+
+## Limitaciones descargas
+
+- Desde final del 2020 Docker impuso limitaciones en el uso de su registro.
+  - 100 descargas de imágenes cada 6 horas para usuarios anónimos (por IP)
+  - 200 descargas de imágenes cada 6 horas para usuarios autenticados
+  - [Cuentas **pro**   y **team**](https://www.docker.com/pricing) para aumentar los límites.
+  - [Cómo saber mi rate limit actual](https://docs.docker.com/docker-hub/download-rate-limit/)
+- Conclusión: ¡¡¡Debemos hacer ***docker login***!!!
+
+
+## Autenticación
+
+- Crear cuenta en [Docker Hub](https://hub.docker.com/)
+- Hacer login desde consola
+  ```
+  docker login
+  ````
+- Se crea un fichero de configuración en *$HOME/.docker/config.json*
+- Las siguientes veces que nos autentiquemos, al hacer *docker login* leerá directamente el fichero
+- Observa que si cerramos  la sesión la entrada *auths* del fichero config.json queda vacía
+
+
+## Workflows
+- Si queremos un repositorio compartido entre varios usuarios necesitamos crear una organización
+- Desde Junio 2021 los [autobuilds](https://docs.docker.com/docker-hub/builds/) son de pago
+  - Si usamos GitHub podemos usar **GitHub Actions**
+
+
+## Nuestro propio registro
+
+- Docker viene configurado por defecto para buscar las imágenes de Docker Hub
+- Es posible usar nuestro propio registro:
+  - Podemos usar la misma **implementación vanilla del Docker registry** que usa Docker Hub
+  - Otros más avanzados como Harbor (Open Source, era VMWare), Artifactory (JFrog), Nexus (Sonatype), etc.
 
 
 ## Otros registros
 
-- Es posible usar nuestro propio registro
-  - Podemos usar la misma implementación vanilla del Docker registry que usar Docker Hub
-  - Otros más avanzados como Harbor (Open Source, era VMWare), Artifactory (JFrog), Nexus (Sonatype), etc.
 - Docker también ofrece una versión enterprise de su registro llamada Docker Trusted Registry (DTR)
 - Google Container Registry (GCR), Amazon Elastic Container Registry (ECR), Azure Container Registry (ACR), Quay (Redhat, versión On-Prem y versión cloud), Gitlab Container Registry, Github Packages, etc.
 
 
+## Repositorios
+- Pueden ser públicos o privados (1 gratis)
+- Se crean desde Docker Hub
+- Cada repo  puede tener una o varias imágenes, en función de la tag
+- Las imágenes se publican mmediante el comando
+  ```
+  docker push <hub-user>/<repo-name>:<tag>
+  ```
+- Se  pueden consultar  mediante  ``` docker search <keyword>```
+  - Lo más  habitual es hacerlo vía web, no con consola
 
-# Docker images
+
+
+# Prácticas DockerHub
+
+
+## Práctica 1
+
+- **redis y redis-commander dockerizados**
+  - Evitamos problemas de dependencias
+  - las máquinas host se quedan "limpias"
+
+
+## redis-comander
+
+- [Paquete de npm](https://www.npmjs.com/package/redis-commander) para acceder a Redis desde el navegador
+- Instalación:
+  - Debemos instalar  nodejs, la versión de la distribución de Ubuntu es antigua (v10)
+  -  Instalamos usando el PPA oficial
+
+```
+sudo curl -sL https://deb.nodesource.com/setup_14.x -o nodesource_setup.sh
+sudo bash nodesource_setup.sh
+sudo apt-get install -y nodejs
+node --version
+sudo npm i -g redis-commander
+redis-commander
+```
+
+
+## Comunicación entre contenedores
+
+- Queremos que se comuniquen entre sí utilizando **redes bridge**:
+  - **default**: las que utilizabamos hasta  ahora
+  - **user defined**: 
+    - Interacionan solo los contenedores definidos en esta red
+    - Hay resolución de nombres
+
+
+## User defined vs default bridge
+
+![](images/custom-network.jpg)
+![bridge](images/docker-bridge-network.jpg)
+
+
+## Buscar imagen  en Docker Hub
+- Opciones
+  - Construir nuestra propia imagen (todavía no sabemos)
+  - Utilizar una imagen ya preparada  en Docker Hub:
+    - Menos propenso  a errores
+    - Más rápido
+  - Modificar una imagen ya preparada y hacerla nuestra
+    - ¿Dockerfile? ¿FROM?
+  
+
+
+## User definedd network
+
+- Creación de red:
+
+```
+# docker network rm my-net
+docker network create my-net
+```
+
+- Uso de red:
+
+```
+docker create --name my-nginx \
+  --network my-net \
+  --publish 8080:80 \
+  nginx:latest
+```
+
+
+## Solución
+
+```
+docker network create redis-net
+docker run --rm --name redis --network redis-net -d redis
+docker run --rm --name redis-commander --network redis-net  -d \
+  --env REDIS_HOSTS=redis \
+  -p 8081:8081 \
+  rediscommander/redis-commander:latest
+```
+
+- Comprueba que efectivamente funciona (*docker log*)
+- Entra a uno de los dos contenedores y comprueba el ping por *name*
+
+
+## Práctica 2
+
+- Monta un escenario como  el anterior con MySQL o MariaDB y phpMyAdmin
+
+
+## Práctica 3
+
+- Ejecuta una imagen de Apache en DockerHub y modifica el index.html para que aparezca HolaMundo
+  - ¿Cómo  has modificado el index.html?
+
+
+
+# Construcción imágenes en Docker
+
+
+## Objetivos
 
 - Aprender a crear ficheros Dockerfile
 - Aprender  a crear y publicar imágenes
 - Entender el concepto de layers en imágenes.
+
+
+## ¿Qué es un dockerfile?
+
+- Plantilla en texto plano que define las dependencias de mi aplicación y la imagen.
+- Cada línea del fichero Dockerfile contiene una serie de comandos que generan una capa en la imágen
+  - Se ejecutan de manera secuencial
+  - Existe una caché que funciona por cada línea o capa.
+- Es habitual que las imágenes se creen en base a otras (herencia)
+
+
+## Concepto de capas
+
+- Una  imágen es un conjunto  de capas de solo lectura, generadas por el Dockerfile
+- ¿Qué es un contenedor?
+  - Una  imagen en ejecución
+  - Una imágen con una capa de lectura/escritura encima del resto de capas llamada  **container layer**
+- Cualquier cambio que hagamos en un contenedor, se  lleva a cabo  en la **container layer**
+
+
+## Ejemplo
+
+- Vamos a crear una imagen que visualice el contenido de un fichero al ejecutar el contenedor
+- Crea un directorio y coloca un fichero *holaMundo.txt* con el texto  *¡Hola Mundo!*
+- Crea un fichero *Dockerfile* en el mismo directorio con el siguiente contenido:
+
+```
+FROM ubuntu:latest
+RUN mkdir -p /app
+COPY holaMundo.txt /app/holaMundo.txt
+RUN chmod 600 /app/holaMundo.txt
+CMD cat /app/holaMundo.txt
+```
+
+
+- Creamos la imagen y etiquetamos:
+```
+  docker build -t <dockerHubUserName>/holaMundo .
+  docker tag  <dockerHubUserName>/holaMundo:v1
+  docker tag  <dockerHubUserName>/holaMundo:v1.0
+  docker tag  <dockerHubUserName>/holaMundo:v1.0.0
+  docker image ls
+  ```
+- Ejecutamos la imagen:
+  ```
+  docker run <dockerHubUserName>/holaMundo
+  ```
+- Subimos la imagen con todas sus tags
+  ``` 
+  docker push -a <dockerHubUserName>/holaMundo
+  ```
+
+
+## Análisis Dockerfile
+
+- FROM nos sirve para partir de una imagen previa
+- RUN: ejecuta comandos 
+- COPY: copia ficheros de nuestro contexto a la imagen
+- CMD: Ejecuta un comando al iniciar el contenedor
+- Más info en las [referencias de Dockerfile](https://docs.docker.com/engine/reference/builder/)
+
+
+## Explorar capas
+
+```docker history <image-name>```
+
+- La herramienta Dive nos sirve para explorar con más detalle las capas de las imágenes de Docker
+https://github.com/wagoodman/dive
+
+
+# Pull the httpd image from DockerHub repository to build our application as a base
+FROM httpd:2.4
+# Copy the static page from the target directory to apache2 docs
+COPY ./public-html/ /usr/local/apache2/htdocs/
+```
+
+
+## Construir imágen
+
+```
+# docker build -t my-apache2 
+```
+
+
+## Ejecutar contenedor
+
+```
+docker run  -p 80:80 --name my-apache2-1  my-apache2
+```
+
+
 
 
 
@@ -620,47 +933,6 @@ docker exec -it <container-name> /bin/bash
 
 
 
-
-
-# Dockerfile
-
-## ¿Qué es un dockerfile?
-
-- Plantilla en texto plano que define las dependencias de mi aplicación
-- Las imágenes se construyen base a estas plantillas
-- Cada línea del fichero Dockerfile genera una layer (capa) en la imágen
-  - La caché funciona por cada línea o capa.
-- Es habitual que las imágenes se creen en base a otras (herencia)
-
-
-# Ejemplo servidor web con docker
-
-
-## Crear dockerfile
-
-```
-# Pull the httpd image from DockerHub repository to build our application as a base
-FROM httpd:2.4
-# Copy the static page from the target directory to apache2 docs
-COPY ./public-html/ /usr/local/apache2/htdocs/
-```
-
-
-## Construir imágen
-
-```
-# docker build -t my-apache2 
-```
-
-
-## Ejecutar contenedor
-
-```
-docker run  -p 80:80 --name my-apache2-1  my-apache2
-```
-
-
-
 ## Docker-compose
 
 
@@ -711,7 +983,17 @@ Tekton: CI/CD nativo para Kubernetes - https://cloud.google.com/tekton
 
 
 
-## Workflow con docker
+# Workflow con docker
+
+
+## Workflow en local
+
+![](images/dev-docker-workflow.png)
+
+
+## Workflow global
+
+![](images/ci-cd-with-docker.png)
 
 - Development
 - CI/CD
