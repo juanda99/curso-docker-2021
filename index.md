@@ -819,7 +819,12 @@ docker run --rm --name redis-commander --network redis-net  -d \
 ## Práctica 3
 
 - Ejecuta una imagen de Apache en DockerHub y modifica el index.html para que aparezca HolaMundo
-  - ¿Cómo  has modificado el index.html?
+  - ¿Cómo has modificado el index.html?
+
+
+## Práctica 3 -  opciones
+- Instalando en el contenedor  un editor y entrando con ``docker exec -it <container> bash```
+- Mediante el [comando cp de Docker](https://docs.docker.com/engine/reference/commandline/cp/)
 
 
 
@@ -901,12 +906,6 @@ CMD cat /app/holaMundo.txt
 https://github.com/wagoodman/dive
 
 
-# Pull the httpd image from DockerHub repository to build our application as a base
-FROM httpd:2.4
-# Copy the static page from the target directory to apache2 docs
-COPY ./public-html/ /usr/local/apache2/htdocs/
-```
-
 
 # PRACTICA
 
@@ -960,6 +959,11 @@ RUN apt-get update; \
   iputils-ping; 
 RUN rm -r /var/lib/apt/lists/*; \
 ```
+
+
+## docker commit
+- Crea una imagen a partir de las instrucciones del ejercicio anterior pero con el comando [docker commit](https://docs.docker.com/engine/reference/commandline/commit/))
+- Verifica la imagen (capas y tamaño)
 
 
 ## Tamaño de las imágenes
