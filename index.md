@@ -66,12 +66,62 @@
 
 ## Como se consigue
 
-- Usando características del kernel de Linux:
-  -  Kernel namespaces
-  - Apparmor
-  - Perfiles SELinux	
-  - Políticas Seccomp
+- Usando características del kernel de Linux como:
   - Chroot y CGroups
+  - Kernel namespaces
+  - Apparmor
+  - Union Filesystem
+
+
+## chroot y cgroups
+
+- Chroot: Un mecanismo para cambiar el directorio raíz de un proceso y sus hijos, y por tanto ejecutarlo en un entorno enjaulado (1999 - FreeBSD)
+- CGroups: 
+  - En el kernel de Linux desde 2008. 
+  - Permiten agrupar procesos (control groups) compartiendo memoria, CPU y sistema de archivos.
+
+
+## kernel namespaces
+- Docker crea un conjunto de namespaces diferente para cada contenedor
+  - Proporciona una capa  de aislamiento
+- Se utilizan los siguientes namespaces de Linux:
+  - PID namespace: procesos
+  - NET namespace: interfaces de red
+  - IPC namespace: recursos IPC
+  - MNT namespace: puntos de montaje
+  - UTS namespace (Unix Time-Sharing): hostname y domain
+
+
+##  AppArmor
+
+- Módulo de seguridad del kernel de Linux que proporciona control de acceso para confinar programas a un conjunto limitado de recursos
+- Se pueden definir 2 tipos de perfiles:
+  -  **enforcement**: impiden la acción y además reportan el intento
+  -  **compliance**: únicamente se registra el acceso.
+
+
+- Docker crea un perfil AppArmor llamado **docker-default** y lo carga en el kernel.
+  - Es un perfil de protección moderada, a la vez que proporciona la máxima compatibilidad de aplicaciones. 
+  - [Ver la plantilla a partir de la cual se crea la plantilla](https://github.com/moby/moby/blob/master/profiles/apparmor/template.go)
+
+
+## Union Filesystem
+
+- Se montan varias fuentes de ficheros en directorios comunes
+  - Por ej  al montar un CD o un servicio NFS remoto sobre un /home
+  - Es una característica disponible en muchos tipos de sistemas fde ficheros
+
+
+##  Google Trends
+
+![](images/google-trends.png)
+
+
+## Cloud Native Foundation
+
+- Nace en el 2015 con el objetivo de ayudar en el avance de las tecnologías de contenedores.
+- Fundadores: Google, CoreOS, Mesosphere, Red Hat, Twitter, Huawei, Intel, Cisco, IBM, Docker, Univa, and VMware.
+- [Ver mapa](https://landscape.cncf.io/)
 
 
 
@@ -85,7 +135,7 @@ Herramienta **open-source** que nos permite realizar una **virtualización liger
 
 ## Arquitectura Docker
 
-- Es una arquitectura **cliente-servidor+*
+- Es una arquitectura **cliente-servidor**
   - El servidor es el daemon (container engine) al que se acccede mediante una **API REST**
   - Existen SDKs y clientes de la API para distintos lenguajes
   - El cliente habitual es el comando **docker**
@@ -149,8 +199,7 @@ EXPOSE 80
 
 ## Desarrollos actuales
   - [La carga en la comunicación de un equipo de tamaño n es  n(n-1)/2](https://en.wikipedia.org/wiki/The_Mythical_Man-Month)
-  - Un  equipo de desarrollo se debe dividir en equipos  pequeños autónomos (6-10 personas  )
-    - Amazon es famoso por los equipos de trabajo que comparten 2 pizzas. 
+  - Un  equipo de desarrollo se debe dividir en equipos  pequeños autónomos (2 pizzas)
 ![](images/successtriangle.png)
 
 
@@ -616,7 +665,7 @@ docker run -p5001:6379 --name  redis-old -d redis:4.0
 ## ¿Que más  ofrece?
 
 - **Gestor  de  equipos y organizaciones**: acceso a repositorios privados.
-- **Autobuilds**: compila imágenes de Github  o Bitbucket y hace un push a DockerHub
+- **Autobuilds**: crea nuevas versiones de imágenes en base a cambios en repos de Github/Bitbucket
 - **Webhooks**: Ejecuta acciones después para integrar DockerHub con otros servicios
 
 
@@ -639,7 +688,7 @@ docker run -p5001:6379 --name  redis-old -d redis:4.0
   ````
 - Se crea un fichero de configuración en *$HOME/.docker/config.json*
 - Las siguientes veces que nos autentiquemos, al hacer *docker login* leerá directamente el fichero
-- Observa que si cerramos  la sesión la entrada *auths* del fichero config.json queda vacía
+- Observa que si cerramos  la sesión la entrada *auths* del fichero *config.json* queda vacía
 
 
 ## Workflows
@@ -666,7 +715,7 @@ docker run -p5001:6379 --name  redis-old -d redis:4.0
 - Pueden ser públicos o privados (1 gratis)
 - Se crean desde Docker Hub
 - Cada repo  puede tener una o varias imágenes, en función de la tag
-- Las imágenes se publican mmediante el comando
+- Las imágenes se publican mediante el comando
   ```
   docker push <hub-user>/<repo-name>:<tag>
   ```
@@ -723,12 +772,12 @@ redis-commander
   - Utilizar una imagen ya preparada  en Docker Hub:
     - Menos propenso  a errores
     - Más rápido
-  - Modificar una imagen ya preparada y hacerla nuestra
+  - Modificar una imagen ya preparada:
     - ¿Dockerfile? ¿FROM?
   
 
 
-## User definedd network
+## User defined network
 
 - Creación de red:
 
@@ -859,36 +908,115 @@ COPY ./public-html/ /usr/local/apache2/htdocs/
 ```
 
 
-## Construir imágen
+# PRACTICA
+
+- Crea una imagen que se base en ubuntu y que permita:
+  - Editar ficheros con vim
+  - Ejecutar el comando ping
+
+
+## Solución
+
+- Observa el *-y* para  evitar la parte interactiva del comando *apt-get install*
 
 ```
-# docker build -t my-apache2 
+FROM ubuntu:latest
+RUN apt-get update
+RUN apt-get install -y vim iputils-ping
 ```
 
 
-## Ejecutar contenedor
+- Comprueba con dive los recursos  utilizados
 
 ```
-docker run  -p 80:80 --name my-apache2-1  my-apache2
+docker build -t test .
+dive test
 ```
 
 
+## Mejor solución
+
+```
+FROM ubuntu:latest
+RUN apt-get update; \
+  apt-get install -y --no-install-recommends \
+  vim \
+  iputils-ping \
+  ; \
+  rm -r /var/lib/apt/lists/*;
+```
+
+- Podemos  ver las capas también mediante *docker inspect* y *dockere history*
+  - No todos los pasos generan una nueva capa, algunos comandos solo alteran configuración (CMD, ENV, ENTRYPOINT, EXPOSE, etc.).
+
+
+## ¿Qué falla aquí?
+
+```
+FROM ubuntu:latest
+RUN apt-get update; \
+  apt-get install -y --no-install-recommends \
+  vim \
+  iputils-ping; 
+RUN rm -r /var/lib/apt/lists/*; \
+```
+
+
+## Tamaño de las imágenes
+
+-  Debido al funcionamiento de los union filesystems, es importante recordar que borrar un archivo en un paso del Dockerfile no elimina ese archivo de las capas anteriores de la imagen. 
+   -  El archivo sigue presente, pero no es accesible desde el contenedor.
+● L0: FROM ubuntu
+● L1: RUN apt-get install alguna-herramienta
+● L2: RUN algo-que-utiliza-la-herramienta para compilar o hacer algo
+● L3: RUN apt-get remove alguna-herramienta
+
+## Almacenamiento (I)
+
+- En docker, las imágenes se construyen a base de capas
+- Cada capa contiene únicamente las diferencias respecto a la capa padre. 
+- Docker utiliza mecanismos de union filesystems para montar en una carpeta la combinación de las distintas capas.
+
+
+## Almacenamiento (II)
+
+- Al crear un contenedor, Docker añade una capa adicional (la capa de contenedor), que es la única sobre la que es posible escribir. De esta forma el contenedor puede modificar aparentemente la imagen base, como si tuviera una copia real, pero únicamente está modificando esta última capa. 
+- Podemos crear múltiples contenedores sobre una misma imagen, reutilizando todas las capas excepto la capa de contenedor.
+- Al destruir un contenedor, esta capa con las modificaciones se destruye, a no ser que la convirtamos en una nueva imagen con el comando docker commit.
+
+
+## Build Context
+
+- Al hacer un build se envían al daemon docker los ficheros de la carpeta especificada por el context (por ejemplo "."): 
+
+``` 
+# En este caso el contexto es ".", el directorio actual:
+$ docker build -t myimage -f Dockerfile .
+```
+  - Es recomendable usar una carpeta separada para almacenar el contexto, e indicarlo explícitamente.
+  - Si no necesitamos añadir ningún fichero al contenedor, podemos especificar “-” como carpeta del contexto para indicar un contexto vacío:
+    ```
+    docker build -t myimage -f Dockerfile -
+    ```
 
 
 
 ## Dangling  images
+
 - Build de una  imagen pero no le damos nombre, se queda sin etiquetar mostrada como  <none>.
 - Se borran mediante el comando:
   ```docker system  prune ```
 
 
 ## Imágenes sin uso
+
 - Conforme vamos usando  docker, descargando imágenes... empezamos a ocupar  espacio
 - Podemos comprobar el espacio usado mediante el comando: 
   ```docker system df ```
   
 - Las eliminaremos con el  comando:
   ```docker system prune  -a``
+
 
 ## Etiquetar imágenes
 
@@ -900,40 +1028,25 @@ docker run  -p 80:80 --name my-apache2-1  my-apache2
 ```docker stats --no-stream```
 
 
-## Hello World
-```
-$ docker image ls
-$ docker run hello-world
-Hello from Docker!
-```
+
+# Docker Compose
 
 
-## Creacción y acceso a un contenedor
+## Qué es Docker Compose
 
-```
-docker run -it --name <container-name> -d <image-name>
-docker exec -it <container-name> /bin/bash
-```
-
-- Navegando desde el plugin Docker de Visual Code
+- Herramienta para definir  y ejecutar aplicaciones con varios contenedores Docker.
+- Se definen los contenedores (servicios) de la aplicación mediante un fichero  YAML.
+- Se levantan mediante el comando ```docker-compose up```
 
 
-## Ejemplo
+## Prueba de uso
 
-```$ docker run -it ubuntu /bin/bash ```
-- Docker hace un ```docker pull ubuntu:latest```  
-  - Descarga la imagen ubuntu (ubuntu:latest) del registro por defecto (normalmente Docker Hub), a no ser que ya estuviera localmente. 
-- Docker crea un nuevo contenedor (docker container create).
-
-  - Docker crea una nueva capa sólo lectura, con archivos especiales requeridos por el contenedor, y otra más en lectura-escritura, y la asocia como última capa del contenedor.
-  - Se crea un interfaz de red que conecta el contenedor con la red por defecto. 
-    - Se asigna una dirección IP al contenedor. 
-    - Se establecen mediante iptables unas reglas de NAT para que el contenedor pueda conectarse a Internet.
-- Docker ejecuta el contenedor, y lanza el proceso /bin/bash. 
-
-
-
-## Docker-compose
+- [Referencia de uso](https://docs.docker.com/compose/compose-file/compose-file-v3/)
+- Vamos a analizar un caso sencillo con 3 contenedores:
+  - web server con  php
+  - db con MySQL
+  - phpMyAdmin
+- Clona [este repositorio](https://github.com/juanda99/practica-docker-compose-php/blob/main/docker-compose.yml)
 
 
 ## Entornos de desarrollo
@@ -960,26 +1073,10 @@ Github actions:
 Tekton: CI/CD nativo para Kubernetes - https://cloud.google.com/tekton
 
 
-
 ## Limitación de recursos
 - Los contenedores comparten los recursos del host
 - No existe ninguna limitación en el consumo de los mismos.
 - Se limitan mediante Docker Dashboard
-
-## Seguridad
--
-
-
-
-## Almacenamiento
-
-- En docker, las imágenes se construyen a base de capas
-- Cada capa contiene únicamente las diferencias respecto a la capa padre. 
-- Docker utiliza mecanismos de union filesystems para montar en una carpeta la combinación de las distintas capas.
-- Al crear un contenedor, Docker añade una capa adicional (la capa de contenedor), que es la única sobre la que es posible escribir. De esta forma el contenedor puede modificar aparentemente la imagen base, como si tuviera una copia real, pero únicamente está modificando esta última capa. 
-- Podemos crear múltiples contenedores sobre una misma imagen, reutilizando todas las capas excepto la capa de contenedor.
-- Al destruir un contenedor, esta capa con las modificaciones se destruye, a no ser que la convirtamos en una nueva imagen con el comando docker commit.
-
 
 
 
