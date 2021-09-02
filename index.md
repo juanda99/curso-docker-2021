@@ -220,6 +220,12 @@ EXPOSE 80
 - El ecosistema de contenedores fundamentalmente utiliza Linux
 - Como los  contenedores comparten el kernel con el host, no se  pueden ejecutar directamente en Windows, [hace falta virtualización](https://stackoverflow.com/questions/48251703/if-docker-runs-natively-on-windows-then-why-does-it-need-hyper-v )
 - HyperV en Windows 10 pero versiones PRO o ENTERPRISE
+- HyperV y  VirtualBox no se llevan bien
+- Debemos deshabilitarlo mediante el siguiente comando de PowerShell:
+    ```
+    Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
+    ```
+  - Y  además puede ser necesario  reiniciar :-(
 
 
 ##  Docker en Windows (II)
@@ -247,7 +253,7 @@ EXPOSE 80
 - Servicios en red  
   - Servicios de red orientados a aplicación
   - Instalación de servicios de transferencia de ficheros
-  - Instalación  de un servidores Web
+  - Instalación  de servidores Web
 
 - Aplicaciones web
   - Instalación de aplicaciones web (Wordpress, Moodle, app a medida)
@@ -823,12 +829,16 @@ docker run --rm --name redis-commander --network redis-net  -d \
 
 
 ## Práctica 3 -  opciones
-- Instalando en el contenedor  un editor y entrando con ``docker exec -it <container> bash```
+
+- Instalando en el contenedor  un editor y entrando mediante:
+```
+docker exec -it <container> bash
+```
 - Mediante el [comando cp de Docker](https://docs.docker.com/engine/reference/commandline/cp/)
 
 
 
-# Construcción imágenes en Docker
+# Construcción imágenes en Docker (1)
 
 
 ## Objetivos
@@ -907,7 +917,10 @@ https://github.com/wagoodman/dive
 
 
 
-# PRACTICA
+# PRACTICAS IMÁGENES
+
+
+## PRACTICA 1
 
 - Crea una imagen que se base en ubuntu y que permita:
   - Editar ficheros con vim
@@ -945,7 +958,7 @@ RUN apt-get update; \
   rm -r /var/lib/apt/lists/*;
 ```
 
-- Podemos  ver las capas también mediante *docker inspect* y *dockere history*
+- Podemos  ver las capas también mediante *docker inspect* y *docker history*
   - No todos los pasos generan una nueva capa, algunos comandos solo alteran configuración (CMD, ENV, ENTRYPOINT, EXPOSE, etc.).
 
 
@@ -962,74 +975,80 @@ RUN rm -r /var/lib/apt/lists/*; \
 
 
 ## docker commit
-- Crea una imagen a partir de las instrucciones del ejercicio anterior pero con el comando [docker commit](https://docs.docker.com/engine/reference/commandline/commit/))
+- Crea una imagen a partir de las instrucciones del ejercicio anterior (vim + ping) pero con el comando [docker commit](https://docs.docker.com/engine/reference/commandline/commit/))
 - Verifica la imagen (capas y tamaño)
 
 
-## Tamaño de las imágenes
 
--  Debido al funcionamiento de los union filesystems, es importante recordar que borrar un archivo en un paso del Dockerfile no elimina ese archivo de las capas anteriores de la imagen. 
-   -  El archivo sigue presente, pero no es accesible desde el contenedor.
-● L0: FROM ubuntu
-● L1: RUN apt-get install alguna-herramienta
-● L2: RUN algo-que-utiliza-la-herramienta para compilar o hacer algo
-● L3: RUN apt-get remove alguna-herramienta
+# Construcción imágenes en Docker (2)
 
-## Almacenamiento (I)
+
+## Almacenamiento
 
 - En docker, las imágenes se construyen a base de capas
 - Cada capa contiene únicamente las diferencias respecto a la capa padre. 
 - Docker utiliza mecanismos de union filesystems para montar en una carpeta la combinación de las distintas capas.
 
 
-## Almacenamiento (II)
+## Almacenamiento
 
-- Al crear un contenedor, Docker añade una capa adicional (la capa de contenedor), que es la única sobre la que es posible escribir. De esta forma el contenedor puede modificar aparentemente la imagen base, como si tuviera una copia real, pero únicamente está modificando esta última capa. 
+- Al crear un contenedor, Docker añade una capa adicional (la capa de contenedor), que es la única sobre la que es posible escribir.
+- El contenedor modifica aparentemente la imagen base, como si tuviera una copia real, pero únicamente está modificando esta última capa. 
 - Podemos crear múltiples contenedores sobre una misma imagen, reutilizando todas las capas excepto la capa de contenedor.
 - Al destruir un contenedor, esta capa con las modificaciones se destruye, a no ser que la convirtamos en una nueva imagen con el comando docker commit.
 
 
+## Tamaño de las imágenes
+
+-  Borrar un archivo en un paso del Dockerfile no elimina ese archivo de las capas anteriores de la imagen. 
+   - El archivo sigue presente, pero no es accesible desde el contenedor.
+   - Es la forma de comportarse de los union filesystems
+
+   ```
+    FROM ubuntu
+    RUN apt-get install alguna-herramienta
+    RUN algo-que-utiliza-la-herramienta para compilar o hacer algo
+    RUN apt-get remove alguna-herramienta
+    ```
+
+
 ## Build Context
 
-- Al hacer un build se envían al daemon docker los ficheros de la carpeta especificada por el context (por ejemplo "."): 
+- Al hacer un build se envían al daemon docker los ficheros de la ruta especificada como contexto: 
 
 ``` 
 # En este caso el contexto es ".", el directorio actual:
 $ docker build -t myimage -f Dockerfile .
 ```
-  - Es recomendable usar una carpeta separada para almacenar el contexto, e indicarlo explícitamente.
-  - Si no necesitamos añadir ningún fichero al contenedor, podemos especificar “-” como carpeta del contexto para indicar un contexto vacío:
-    ```
-    docker build -t myimage -f Dockerfile -
-    ```
+- Es recomendable usar una carpeta separada para almacenar el contexto.
+- Podemos crear un fichero *.dockerignore*
+
+```
+# contexto vacío, si no necesitamos añadir ficheros al contenedor, mediante "-"
+docker build -t myimage -f Dockerfile -
+```
 
 
+## Tipos de imágenes
+  - **Used**: Las que aparecen al hacer un  *docker ps  -a*
+  - **Unused**: Las que no aparecen (se usaron en su momento pero se ha borrado el contenedor)
+  - **Dangling images**:  Imágenes  que se crean sin  nombre, y se muestran como  **\<none\>**.
+    - Útil  cuando  estamos haciendo pruebas de compilación
 
-## Dangling  images
 
-- Build de una  imagen pero no le damos nombre, se queda sin etiquetar mostrada como  <none>.
-- Se borran mediante el comando:
-  ```docker system  prune ```
-
-
-## Imágenes sin uso
+## Gestión de espacio
 
 - Conforme vamos usando  docker, descargando imágenes... empezamos a ocupar  espacio
-- Podemos comprobar el espacio usado mediante el comando: 
-  ```docker system df ```
+- Comprobar el espacio usado: 
+```
+docker system df 
+```
+- Eliminación de imágenes:
   
-- Las eliminaremos con el  comando:
-  ```docker system prune  -a``
-
-
-## Etiquetar imágenes
-
-```docker tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]```
-
-
-## Ver uso  de los contenedores
-
-```docker stats --no-stream```
+```
+  docker system prune  -a #  unused  y  dangling images
+  docker system prune # dangling images
+```
 
 
 
@@ -1084,7 +1103,43 @@ Tekton: CI/CD nativo para Kubernetes - https://cloud.google.com/tekton
 
 
 
+# Monitorización
+
+## Desde docker
+
+- Ver  uso  contenedores:
+
+```docker stats --no-stream```
+
+
+
 # Workflow con docker
+
+
+## Desarrollo con  Vagrant
+
+- Buena opción si trabajamos en equipos Windows y no queremos preocuparnos de despliegues
+- Descargamos Vagrant
+- Configuramos Vagrant (ver después) o hacemos un git clone de https://github.com/juanda99/vagrant-deploy-virtualbox-docker
+
+  
+## Configuración Vagrant-Virtual Box
+
+- Nos situamos en  un  directorio e inicializamos mediante ```vagrant init```
+- Modificamos el fichero  Vagrantfile creado con algo como:
+  ```
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+  #config.vm.box = "base"
+  config.vm.box = "bento/ubuntu-20.04"
+  config.vm.network :forwarded_port, host: 8000, guest: 8000
+  # require plugin https://github.com/leighmcculloch/vagrant-docker-compose
+  config.vagrant.plugins = "vagrant-docker-compose"
+  # install docker and docker-compose
+  config.vm.provision :docker
+  config.vm.provision :docker_compose, yml: "/vagrant/docker-compose.yml", rebuild: true, run: "always"
+  ```
+- Añadimos servicios  mediante docker-compose cuyo punto de entrada se mapee al host en el 8000
 
 
 ## Workflow en local
