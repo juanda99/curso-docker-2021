@@ -780,7 +780,6 @@ redis-commander
     - Más rápido
   - Modificar una imagen ya preparada:
     - ¿Dockerfile? ¿FROM?
-  
 
 
 ## User defined network
@@ -822,19 +821,78 @@ docker run --rm --name redis-commander --network redis-net  -d \
 - Monta un escenario como  el anterior con MySQL o MariaDB y phpMyAdmin
 
 
-## Práctica 3
+## Práctica  3
 
-- Ejecuta una imagen de Apache en DockerHub y modifica el index.html para que aparezca HolaMundo
+- Comprueba las versiones de imágenes de httpd
+  - ¿Vía web?
+  - ¿Vía docker  search?
+
+
+## Práctica 3 - opciones
+- *docker search* no nos sirve
+- *Vía web* aunque es algo "laborioso"
+- Prueba y error con la versión que queremos
+- Usando [hub tool](https://www.docker.com/blog/docker-hub-experimental-cli-tool/)
+```
+  hub-tool tag ls <repo-name>
+```
+
+
+## Práctica 4
+
+- Ejecuta una imagen 2.2 de Apache en DockerHub y modifica el index.html para que aparezca HolaMundo
   - ¿Cómo has modificado el index.html?
 
 
-## Práctica 3 -  opciones
+## Práctica 4 -  opciones
 
 - Instalando en el contenedor  un editor y entrando mediante:
 ```
 docker exec -it <container> bash
 ```
 - Mediante el [comando cp de Docker](https://docs.docker.com/engine/reference/commandline/cp/)
+- Mediante  el plugin Docker de Visual Studio Code (lo más sencillo)
+
+
+## Práctica 5
+
+- Imagina que hay un  bug importante en Apache que está arreglado en la versión 2.4
+- Actualiza la versión  de  nuestra aplicación  HolaMundo anterior a Apache2.4
+
+
+## Práctica 5 -  opciones
+
+- Las dos opciones  más adecuadas serían:
+  - Generar una nueva imagen de nuestra aplicación
+    - No sabemos hacerlo todavía
+    - Realmente tampoco lo habíamos hecho, utilizabamos directamente la imagen de Apache
+  - Buscar persistencia de algún modo en nuestro contenedor efímero.
+    - Usámos volúmenes o bind-mounts
+
+
+## Volúmenes
+
+- Docker gestiona el volumen de forma transparente
+```
+  docker-volume ls
+  docker volume  rm <volume-id>
+  docker volume inspect <volume-id>
+```
+
+- Ejemplo  con nginx:
+```
+  docker run -d --name=nginx -v nginx-vol:/usr/share/nginx/html nginx:latest
+```
+
+
+## Bind mounts
+
+- El volumen se mapea a un directorio físico acccesible no solo por Docker.
+- Si el directorio no existe, se crea.
+
+```
+docker run -d --name=nginx -v ./nginx-web:/usr/share/nginx/html nginx:latest
+```
 
 
 
@@ -884,9 +942,9 @@ CMD cat /app/holaMundo.txt
 - Creamos la imagen y etiquetamos:
 ```
   docker build -t <dockerHubUserName>/holaMundo .
-  docker tag  <dockerHubUserName>/holaMundo:v1
-  docker tag  <dockerHubUserName>/holaMundo:v1.0
-  docker tag  <dockerHubUserName>/holaMundo:v1.0.0
+  docker tag  <dockerHubUserName>/holaMundo:1
+  docker tag  <dockerHubUserName>/holaMundo:1.0
+  docker tag  <dockerHubUserName>/holaMundo:1.0.0
   docker image ls
   ```
 - Ejecutamos la imagen:
@@ -910,10 +968,24 @@ CMD cat /app/holaMundo.txt
 
 ## Explorar capas
 
-```docker history <image-name>```
+- Podemos  ver las capas también mediante *docker inspect* y *docker history*
+  - No todos los pasos generan una nueva capa, algunos comandos solo alteran configuración (CMD, ENV, ENTRYPOINT, EXPOSE, etc.).
 
 - La herramienta Dive nos sirve para explorar con más detalle las capas de las imágenes de Docker
 https://github.com/wagoodman/dive
+
+
+## Cache
+
+- Las líneas del Dockerfile en principio se cachean
+- Si se produce un MISS ya no se usa más caché en esa compilación
+  - Escribir las líneas más "frecuentes primero"
+  - Si hay líneas "con dependencias", ej apt-get update y apt-install juntas.
+
+- No queremos caché, ni usar la imágen local de base:
+```
+docker build --no-cache --pull -t myApp .
+```
 
 
 
@@ -922,7 +994,7 @@ https://github.com/wagoodman/dive
 
 ## PRACTICA 1
 
-- Crea una imagen que se base en ubuntu y que permita:
+- Crea una imagen que se base en Ubuntu y que permita:
   - Editar ficheros con vim
   - Ejecutar el comando ping
 
@@ -950,33 +1022,36 @@ dive test
 
 ```
 FROM ubuntu:latest
-RUN apt-get update; \
-  apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
   vim \
   iputils-ping \
-  ; \
-  rm -r /var/lib/apt/lists/*;
+  && rm -r /var/lib/apt/lists/*;
 ```
-
-- Podemos  ver las capas también mediante *docker inspect* y *docker history*
-  - No todos los pasos generan una nueva capa, algunos comandos solo alteran configuración (CMD, ENV, ENTRYPOINT, EXPOSE, etc.).
 
 
 ## ¿Qué falla aquí?
 
 ```
 FROM ubuntu:latest
-RUN apt-get update; \
-  apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
   vim \
-  iputils-ping; 
+  iputils-ping
 RUN rm -r /var/lib/apt/lists/*; \
 ```
 
 
-## docker commit
-- Crea una imagen a partir de las instrucciones del ejercicio anterior (vim + ping) pero con el comando [docker commit](https://docs.docker.com/engine/reference/commandline/commit/))
+## PRÁCTICA 2
+- Crea una imagen a partir de las instrucciones del ejercicio anterior (vim + ping) pero con el comando [docker commit](https://docs.docker.com/engine/reference/commandline/commit/)
 - Verifica la imagen (capas y tamaño)
+
+
+## PRÁCTICA 3
+
+- Vamos  a crear una  versión v2.0 de nuestro holaMundo, que en vez de coger el fichero de local lo coja de una URL mediante el comando [ADD](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#add-or-copy)
+- Compila la imagen y ejecútala
+- Cambiaremos los datos del fichero apuntado por la URL
+- Compila de nuevo la imagen y ejecuta otra vez
+- ¿Qué pasa? ¿Comó lo solucionas?
 
 
 
@@ -995,7 +1070,7 @@ RUN rm -r /var/lib/apt/lists/*; \
 - Al crear un contenedor, Docker añade una capa adicional (la capa de contenedor), que es la única sobre la que es posible escribir.
 - El contenedor modifica aparentemente la imagen base, como si tuviera una copia real, pero únicamente está modificando esta última capa. 
 - Podemos crear múltiples contenedores sobre una misma imagen, reutilizando todas las capas excepto la capa de contenedor.
-- Al destruir un contenedor, esta capa con las modificaciones se destruye, a no ser que la convirtamos en una nueva imagen con el comando docker commit.
+- Al destruir un contenedor, esta capa con las modificaciones se destruye.
 
 
 ## Tamaño de las imágenes
@@ -1051,6 +1126,32 @@ docker system df
 ```
 
 
+## Multistage builds
+
+- Se crea la  primera  imagen que sirve para obtener lo que se usa en  el segundo stage  (ver --from=n)
+- Todo lo que no se usa  queda  fuera del  último stage que es el definitivo
+  - Útil  para entorno de compilación
+  - Se reduce el tamaño final de la imagen al quedarnos solo con el ejecutable
+
+
+## Ejemplo multistage
+
+```
+# syntax=docker/dockerfile:1
+FROM golang:1.16
+WORKDIR /go/src/github.com/alexellis/href-counter/
+RUN go get -d -v golang.org/x/net/html  
+COPY app.go ./
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
+
+FROM alpine:latest  
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=0 /go/src/github.com/alexellis/href-counter/app ./
+CMD ["./app"]  
+```
+
+
 
 # Docker Compose
 
@@ -1070,6 +1171,44 @@ docker system df
   - db con MySQL
   - phpMyAdmin
 - Clona [este repositorio](https://github.com/juanda99/practica-docker-compose-php/blob/main/docker-compose.yml)
+  
+
+## Otra prueba con node y mongodb
+
+
+## Debug y  docker-override
+
+
+## Proxy  inverso
+
+
+## Shell  script para espera de bbdd
+ 
+
+## Práctica ODOO
+
+-  Seleccionar en DockerHub una imagen de Odoo
+-  Desplegar la imagen con  la  bbdd adecuada como servicios (usando  *docker-compose.yml*)
+
+
+  ## Práctica Dolibarr
+
+-  Seleccionar en DockerHub una imagen de Dolilbarr 
+-  Desplegar la imagen con  la  bbdd adecuada como servicios (usando  *docker-compose.yml*)
+
+
+##  Práctica Wordpress
+  - En la web de Docker hay [ejemplos de Wordpress, Django o Rails](https://docs.docker.com/samples/wordpress/)
+  - [Repo con wp-cli, copias de seguridad o caché](https://github.com/juanda99/wordpress-docker)
+
+
+## Práctica crontab
+
+
+## Práctica copias de seguridad
+
+
+## Práctica proxy inverso
 
 
 ## Entornos de desarrollo
@@ -1105,11 +1244,66 @@ Tekton: CI/CD nativo para Kubernetes - https://cloud.google.com/tekton
 
 # Monitorización
 
-## Desde docker
 
-- Ver  uso  contenedores:
+##  Visión  general
 
-```docker stats --no-stream```
+![](images/queue.png)
+![](images/htop.png)
+
+
+## Datos en docker
+
+- Ver  uso  contenedores
+```
+docker stats --no-stream
+```
+
+- Procesos en ejecución
+  
+  ```
+  docker  top <container_id>
+  ```
+
+- Consultas al demonio de docker
+- Consultas específicas por contenedor
+```
+docker exec -it <container-id> top
+```
+- Configuraciones intrínsecas a los servicios (por ej. mod_status en Apache)
+
+
+## Gestión de la  memoria
+
+- El kernel si no tiene suficiente memoria arroja  un  **OOME (Out of memory exception)**.
+  - Empieza a matar procesos para liberar memoria
+  - Puede tirar todo el sistema si mata el proceso equivocado (por ej. el demonio de Docker)
+- Docker ajusta la prioridad de OOM del demonio para reducir la probabilidad de recibir un kill.
+
+
+## Gestion de memoria de los contenedores
+
+- La prioridad de los contenedores no se debe ajustar.
+  - El host debe tener suficiente memoria
+  - Para evitar errores se  debe **limitar el uso de memoria de los contenedores**
+
+
+## Ejemplo configuración
+
+- La configuración cambia bastante entre versiones de docker-compose
+
+```
+services:
+  service:
+    image: nginx
+    deploy:
+        resources:
+            limits:
+              cpus: 0.50
+              memory: 512M
+            reservations:
+              cpus: 0.25
+              memory: 128M
+```
 
 
 
@@ -1121,6 +1315,7 @@ Tekton: CI/CD nativo para Kubernetes - https://cloud.google.com/tekton
 - Buena opción si trabajamos en equipos Windows y no queremos preocuparnos de despliegues
 - Descargamos Vagrant
 - Configuramos Vagrant (ver después) o hacemos un git clone de https://github.com/juanda99/vagrant-deploy-virtualbox-docker
+
 
   
 ## Configuración Vagrant-Virtual Box
@@ -1155,8 +1350,9 @@ Tekton: CI/CD nativo para Kubernetes - https://cloud.google.com/tekton
 - CI/CD
 - Deployment
 
+
 Aplicación JavaScript con MongoDB
-Git commit -> CI push a private repository con mi  códdigo
+Git commit -> CI push a private repository con mi  código
 Uso también  de  Docker hub para el mongoDB,  MongoExpress para no lidiar con terminal
 
 
@@ -1261,3 +1457,9 @@ CMD ["node", "server.js"]
 Mejor variables de entorno fuera,  en el docker-compose!!!
 Si cambian  no  hay  que hacer rebuild de  la  imagen!!!        
 
+
+
+
+- hola mundo con  volúmenes  (apache 2.2 y 2.4)
+- crear ficheros (ver permisos)
+- bash con wait para bbdd   
