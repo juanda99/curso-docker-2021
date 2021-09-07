@@ -1184,11 +1184,8 @@ CMD ["./app"]
 -  ¿Cómo hacemos para que los servicios anteriores funcionen todos en el 80?
     - Proxy inverso en función de la url
     - Similar a un virtual host  de apache pero que se configura solo en función de las peticiones que le llegan al docker daemon
-    - Usaremos [https://github.com/nginx-proxy/nginx-proxy] nginx-proxy o  [https://github.com/traefik/traefik]traefik
+    - Usaremos [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) o  [traefik](https://github.com/traefik/traefik)
 
-
-## Shell  script para espera de bbdd
- 
 
 ## Práctica ODOO
 
@@ -1196,7 +1193,7 @@ CMD ["./app"]
 -  Desplegar la imagen con  la  bbdd adecuada como servicios (usando  *docker-compose.yml*)
 
 
-  ## Práctica Dolibarr
+## Práctica Dolibarr
 
 -  Seleccionar en DockerHub una imagen de Dolilbarr 
 -  Desplegar la imagen con  la  bbdd adecuada como servicios (usando  *docker-compose.yml*)
@@ -1209,11 +1206,43 @@ CMD ["./app"]
 
 ## Mooodle
 
+- [Ver ejemplo de Catedu](https://github.com/catedu/moodle-docker-production)
 
-## Práctica crontab
+
+## Problema de espera entre contenedores
+ - Una buena forma es usar [dockerize](https://github.com/jwilder/dockerize)
+   - [Ejemplo de uso](https://github.com/catedu/moodle-docker-production/blob/master/apache/3.7.6/docker-entrypoint.sh#L101)
+   - Instalación:
+
+```
+RUN curl -o dockerize.tar.gz -fSL "https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/dockerize-linux-amd64-${DOCKERIZE_VERSION}.tar.gz"; \
+	tar -xf dockerize.tar.gz -C /usr/local/bin; \
+	rm dockerize.tar.gz
+```
+
+
+## crontab
+- ¿Añadir  un servicio de crontab a nuestro contenedor?
+  - ¡¡¡no!!! Filosofía docker: 1 contenedor = 1 servicio
+- Podemos crear un crontab en el host con comandos como:
+   
+   ```
+   docker exec -it <containerId> <command> 
+   docker run --rm <containerId> <command>
+   ```
+
+
+- Usar soluciones ya preparadas: [Ofelia](https://github.com/mcuadros/ofelia)
+![](images/ofelia.gif)
 
 
 ## Práctica copias de seguridad
+- Propongo  uso de  [rsnapshot](https://rsnapshot.org/)
+  - rsync para hacer instantáneas con hard links
+- Interfaz gráfico para su gestión
+- Y para hacer deploy en Docker
+- ¿Existe esto?
+  - [ELKAR backup](https://www.elkarbackup.org/)
 
 
 
