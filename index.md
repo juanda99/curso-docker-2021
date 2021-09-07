@@ -982,7 +982,7 @@ https://github.com/wagoodman/dive
   - Escribir las líneas más "frecuentes primero"
   - Si hay líneas "con dependencias", ej apt-get update y apt-install juntas.
 
-- No queremos caché, ni usar la imágen local de base:
+- Si no queremos caché (ni para *FROM image*):
 ```
 docker build --no-cache --pull -t myApp .
 ```
@@ -1171,15 +1171,20 @@ CMD ["./app"]
   - db con MySQL
   - phpMyAdmin
 - Clona [este repositorio](https://github.com/juanda99/practica-docker-compose-php/blob/main/docker-compose.yml)
-  
-
-## Otra prueba con node y mongodb
 
 
-## Debug y  docker-override
+## Docker-compose con Image
+- Óptimo para producción, más rápido que un build y todo *empaquetado*
+- Crea una imagen de Apache con un HolaMundo
+- Ejecútala mediante docker-compose.yml
 
 
 ## Proxy  inverso
+-  Para dar un  servicio externo, en web el  puerto es el 80
+-  ¿Cómo hacemos para que los servicios anteriores funcionen todos en el 80?
+    - Proxy inverso en función de la url
+    - Similar a un virtual host  de apache pero que se configura solo en función de las peticiones que le llegan al docker daemon
+    - Usaremos [https://github.com/nginx-proxy/nginx-proxy] nginx-proxy o  [https://github.com/traefik/traefik]traefik
 
 
 ## Shell  script para espera de bbdd
@@ -1202,43 +1207,13 @@ CMD ["./app"]
   - [Repo con wp-cli, copias de seguridad o caché](https://github.com/juanda99/wordpress-docker)
 
 
+## Mooodle
+
+
 ## Práctica crontab
 
 
 ## Práctica copias de seguridad
-
-
-## Práctica proxy inverso
-
-
-## Entornos de desarrollo
-
-- Se instalan mediante contenedores
-- Aseguramos versiones:
-  - Compiladores y herramientas de  builld tipo Maven, Gradle
-  - BBDD
-- El código fuente  se mantiene en un directorio físico asociado mediante un volumen a un  contenedor
-- El código compilado se lleva a otra carpeta del host o a una nueva imagen que se utiliza para el despliegue.
-
-
-Desarrollo directamente dentro del contenedor con Visual Studio Code:
-https://code.visualstudio.com/docs/remote/containers  
-
-
-Pipelines de CI/CD
-Jenkins: https://jenkins.io/doc/book/pipeline/docker/
-Azure Pipelines Container Jobs:
-https://docs.microsoft.com/en-us/azure/devops/pipelines/process/container-phases?view=az ure-devops
-Github actions:
-● https://github.com/features/actions
-● https://help.github.com/en/actions/building-actions/creating-a-docker-container-action
-Tekton: CI/CD nativo para Kubernetes - https://cloud.google.com/tekton
-
-
-## Limitación de recursos
-- Los contenedores comparten los recursos del host
-- No existe ninguna limitación en el consumo de los mismos.
-- Se limitan mediante Docker Dashboard
 
 
 
@@ -1349,117 +1324,3 @@ services:
 - Development
 - CI/CD
 - Deployment
-
-
-Aplicación JavaScript con MongoDB
-Git commit -> CI push a private repository con mi  código
-Uso también  de  Docker hub para el mongoDB,  MongoExpress para no lidiar con terminal
-
-
-Mongo   y  MongoExpress en la missma red:
-docker network ls
-docker network create mongo-network
-
-
-docker run -p 27017:27017  -d --network mongo-network --name mongodb \
-    -e MONGO_INITDB_ROOT_USERNAME=admin \
-    -e MONGO_INITDB_ROOT_PASSWORD=password \
-    mongo
-
-// ojo  que coincida red, nombre servidor y usr/pwd!!!!!
-
-$ docker run -d \
-    --network mongo-network \
-    --name mongo-express \
-    -p 8081:8081 \
-    -e ME_CONFIG_MONGODB_SERVER=mongodb \
-    -e ME_CONFIG_MONGODB_ADMINUSERNAME=admin \
-    -e ME_CONFIG_MONGODB_ADMINPASSWORD=password \
-    mongo-express
-
-
-    docker logs mongo-express para ver  un  "connected" y  luego probamos con localhost
-
-
-    docker-logs -f y ver que mongodb introduce nuevos datos de la app que haga. 
-
-
-    Ejecutat varios contenedores... mejor con docker-compose!!!
-
-    ojo, y  faltaban los volúmenes!!!
-
-    yaml: ojo con indentation!  usar  plugins en  Visual  Studio Code
-
-  docker-compose.yaml:
-
-    version: '3'
-    services:
-      # my-app:
-      # image: ${docker-registry}/my-app:1.0
-      # ports:
-      # - 3000:3000
-      mongodb:
-        image: mongo
-        ports:
-          - 27017:27017
-        environment:
-          - MONGO_INITDB_ROOT_USERNAME=admin
-          - MONGO_INITDB_ROOT_PASSWORD=password
-        volumes:
-          - mongo-data:/data/db
-      mongo-express:
-        image: mongo-express
-        ports:
-          - 8080:8081
-        environment:
-          - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-          - ME_CONFIG_MONGODB_ADMINPASSWORD=password
-          - ME_CONFIG_MONGODB_SERVER=mongodb
-    volumes:
-      mongo-data:
-        driver: local
-
-
-!!  añadir  fichero  .env y hacer docker-compose config
-No hace falta network  porque crea  una para todos ellos.
-
-Ejecución
-Comprobamos  trazas al hacer el up,  creación de networkks y  containers, logs mezclados al arrancar ambos a la vez. connection refused porque todavía no ha arrancado mongodb. -> se puede configurar en el docker-compose para que espere.
-
-docker-compose up -f [<file-name>] -d
-
-docker-coompose down  -> rm de todo
-
-docker-compose stop/start
-
-
-dockerfile:
-```
-FROM node:13-alpine
-
-ENV MONGO_DB_USERNAME=admin \
-    MONGO_DB_PWD=password
-
-RUN mkdir -p /home/app
-
-COPY ./app /home/app
-
-# set default dir so that next commands executes in /home/app dir
-WORKDIR /home/app
-
-# will execute npm install in /home/app because of WORKDIR
-RUN npm install
-
-# no need for /home/app/server.js because of WORKDIR
-CMD ["node", "server.js"]
-```
-
-Mejor variables de entorno fuera,  en el docker-compose!!!
-Si cambian  no  hay  que hacer rebuild de  la  imagen!!!        
-
-
-
-
-- hola mundo con  volúmenes  (apache 2.2 y 2.4)
-- crear ficheros (ver permisos)
-- bash con wait para bbdd   
